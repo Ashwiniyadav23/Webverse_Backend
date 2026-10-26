@@ -9,6 +9,9 @@ const {
 
 const {
   updateLessonProgress,
+  submitSectionAssessment,
+  submitLessonTask,
+  submitSectionQuiz,
   getMyProgress,
   getFinalProjectProgress,
   updateFinalProjectProgress,
@@ -85,6 +88,24 @@ router.patch(
   authenticate,
   requireRoles("student"),
   updateLessonProgress
+);
+router.post(
+  "/lessons/:lessonId/assessment",
+  authenticate,
+  requireRoles("student"),
+  submitSectionAssessment
+);
+router.post(
+  "/lessons/:lessonId/tasks/:taskIndex",
+  authenticate,
+  requireRoles("student"),
+  submitLessonTask
+);
+router.post(
+  "/lessons/:lessonId/quiz",
+  authenticate,
+  requireRoles("student"),
+  submitSectionQuiz
 );
 
 module.exports = router;

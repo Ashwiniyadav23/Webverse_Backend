@@ -48,6 +48,25 @@ const projectProgressSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 }, { _id: false });
 
+const curriculumAttemptSchema = new mongoose.Schema({
+  score: { type: Number, min: 0, max: 100, required: true },
+  submittedAt: { type: Date, default: Date.now },
+}, { _id: false });
+const curriculumAssessmentSchema = new mongoose.Schema({
+  score: { type: Number, min: 0, max: 100, default: 0 },
+  passed: { type: Boolean, default: false },
+  feedback: { type: [String], default: [] },
+  submittedAt: { type: Date, default: Date.now },
+}, { _id: false });
+const curriculumProgressSchema = new mongoose.Schema({
+  completedTopics: { type: [String], default: [] },
+  completedTasks: { type: [String], default: [] },
+  quizAttempts: { type: [curriculumAttemptSchema], default: [] },
+  assessmentAttempts: { type: [curriculumAttemptSchema], default: [] },
+  assessment: { type: curriculumAssessmentSchema, default: undefined },
+  updatedAt: { type: Date, default: Date.now },
+}, { _id: false });
+
 const progressSchema = new mongoose.Schema(
   {
     student: {
@@ -77,6 +96,10 @@ const progressSchema = new mongoose.Schema(
     },
     projectProgress: {
       type: projectProgressSchema,
+      default: undefined,
+    },
+    curriculumProgress: {
+      type: curriculumProgressSchema,
       default: undefined,
     },
     projectSubmission: {

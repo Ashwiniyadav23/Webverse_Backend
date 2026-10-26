@@ -3,6 +3,7 @@ const Course = require("../models/Course");
 const Lesson = require("../models/Lesson");
 const Enrollment = require("../models/Enrollment");
 const User = require("../models/User");
+const Progress = require("../models/Progress");
 
 // Public/Student: GET /api/courses
 const getCourses = async (req, res) => {
@@ -473,13 +474,55 @@ const getCourseStudents = async (req, res) => {
       .sort({ enrolledAt: -1 })
       .lean();
 
-    const students = enrollments
+    const enrolled = enrollments
       .filter((e) => e.student != null)
       .map((e) => ({
         enrollmentId: e._id,
         enrolledAt: e.enrolledAt,
         student: e.student,
       }));
+    const [lessons, progressRows] = await Promise.all([
+      Lesson.find({ course: courseId }).select("_id title order module curriculum").sort({ order: 1 }).lean(),
+      Progress.find({ student: { $in: enrolled.map((item) => item.student._id) } })
+        .select("student lesson completed quizScore projectProgress.checklist curriculumProgress projectSubmission.status projectSubmission.score projectSubmission.missingRequirements")
+        .populate("lesson", "title order course")
+        .lean(),
+    ]);
+    const lessonById = new Map(lessons.map((lesson) => [String(lesson._id), lesson]));
+    const lessonIds = new Set(lessons.map((lesson) => String(lesson._id)));
+    const studentProgress = new Map();
+    for (const progress of progressRows) {
+      if (!progress.lesson || !lessonIds.has(String(progress.lesson._id))) continue;
+      const lesson = lessonById.get(String(progress.lesson._id));
+      const curriculumProgress = progress.curriculumProgress || {};
+      const sectionComplete = lesson && lesson.order <= 6
+        && (curriculumProgress.completedTopics || []).length >= (lesson.curriculum?.topics || []).length
+        && (curriculumProgress.completedTasks || []).length >= (lesson.curriculum?.tasks || []).length
+        && (curriculumProgress.quizAttempts || []).slice(-1)[0]?.score >= 67
+        && Boolean(curriculumProgress.assessment?.passed);
+      const key = String(progress.student);
+      if (!studentProgress.has(key)) studentProgress.set(key, []);
+      studentProgress.get(key).push({
+        lessonId: progress.lesson._id,
+        lessonTitle: progress.lesson.title,
+        order: lesson?.order || progress.lesson.order,
+        isProject: /^Final Project:/i.test(lesson?.module || "") || /^Final Project:/i.test(lesson?.title || ""),
+        completed: lesson?.order === 7 ? progress.projectSubmission?.status === "complete" : Boolean(sectionComplete),
+        quizScore: progress.quizScore,
+        completedTopics: progress.curriculumProgress?.completedTopics || [],
+        completedTasks: progress.curriculumProgress?.completedTasks || progress.projectProgress?.checklist || [],
+        quizScore: progress.quizScore,
+        assessmentPassed: progress.curriculumProgress?.assessment?.passed || false,
+        assessmentFeedback: progress.curriculumProgress?.assessment?.feedback || [],
+        projectStatus: progress.projectSubmission?.status || null,
+        projectScore: progress.projectSubmission?.score ?? null,
+        projectFeedback: progress.projectSubmission?.missingRequirements || [],
+      });
+    }
+    const students = enrolled.map((item) => ({
+      ...item,
+      progress: studentProgress.get(String(item.student._id)) || [],
+    }));
 
     return res.status(200).json({
       success: true,

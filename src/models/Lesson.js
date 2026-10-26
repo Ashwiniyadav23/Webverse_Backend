@@ -49,6 +49,12 @@ const lessonSchema = new mongoose.Schema(
       required: true,
       default: "",
     },
+    // Optional structured lesson data powers topic explanations, editor tasks,
+    // quizzes, and section assessments while remaining admin-editable.
+    curriculum: {
+      type: mongoose.Schema.Types.Mixed,
+      default: undefined,
+    },
     videoUrl: {
       type: String,
       default: "",
