@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const app = require("./app");
 const connectDB = require("./config/db");
+const seedInitialCourses = require("./config/seed");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 
@@ -56,6 +57,7 @@ async function startServer() {
   try {
     await connectDB();
     await ensureAdminUser();
+    await seedInitialCourses();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`WebVerse backend running at http://localhost:${PORT}`);

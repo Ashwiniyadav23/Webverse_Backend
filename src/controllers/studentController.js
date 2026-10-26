@@ -1,5 +1,7 @@
 
 const User = require("../models/User");
+const Enrollment = require("../models/Enrollment");
+const Progress = require("../models/Progress");
 
 // GET /api/student/dashboard
 const getStudentDashboard = async (req, res) => {
@@ -22,6 +24,16 @@ const getStudentDashboard = async (req, res) => {
       });
     }
 
+    const [coursesEnrolled, lessonsCompleted] = await Promise.all([
+      Enrollment.countDocuments({ student: student._id }),
+      Progress.countDocuments({ student: student._id, completed: true }),
+    ]);
+
+    const learningProgress =
+      coursesEnrolled > 0
+        ? Math.min(100, Math.round((lessonsCompleted / (coursesEnrolled * 5)) * 100))
+        : 0;
+
     return res.status(200).json({
       success: true,
       message: "Welcome to your WebVerse dashboard!",
@@ -33,9 +45,9 @@ const getStudentDashboard = async (req, res) => {
         joinedAt: student.createdAt,
       },
       stats: {
-        coursesEnrolled: 0,
-        lessonsCompleted: 0,
-        learningProgress: 0,
+        coursesEnrolled,
+        lessonsCompleted,
+        learningProgress,
       },
     });
   } catch (error) {

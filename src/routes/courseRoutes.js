@@ -6,6 +6,7 @@ const {
   getCourses,
   getCourseById,
 } = require("../controllers/courseController");
+const { getLessonsByCourse } = require("../controllers/lessonController");
 
 /**
  * @swagger
@@ -40,6 +41,28 @@ const {
  *         description: Invalid class level
  */
 router.get("/", getCourses);
+
+/**
+ * @swagger
+ * /api/courses/{courseId}/lessons:
+ *   get:
+ *     summary: List published lessons in a course
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Published lessons retrieved
+ *       400:
+ *         description: Invalid course ID
+ *       404:
+ *         description: Published course not found
+ */
+router.get("/:courseId/lessons", getLessonsByCourse);
 
 /**
  * @swagger

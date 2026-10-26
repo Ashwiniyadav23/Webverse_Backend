@@ -77,10 +77,12 @@ const getMyEnrollments = async (req, res) => {
       })
       .sort({ enrolledAt: -1 });
 
+    const validEnrollments = enrollments.filter((e) => e.course != null);
+
     return res.status(200).json({
       success: true,
-      count: enrollments.length,
-      enrollments,
+      count: validEnrollments.length,
+      enrollments: validEnrollments,
     });
   } catch (error) {
     console.error("Get enrollments error:", error.message);

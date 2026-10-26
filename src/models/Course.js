@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const courseSchema = new mongoose.Schema(
@@ -23,6 +22,12 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "Web Development",
     },
     thumbnail: {
       type: String,

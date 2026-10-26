@@ -10,6 +10,9 @@ const {
 const {
   updateLessonProgress,
   getMyProgress,
+  getFinalProjectProgress,
+  updateFinalProjectProgress,
+  submitFinalProject,
 } = require("../controllers/progressController");
 
 /**
@@ -34,6 +37,9 @@ const {
  *         description: Authentication required
  */
 router.get("/me", authenticate, requireRoles("student"), getMyProgress);
+router.get("/final-project/me", authenticate, requireRoles("student"), getFinalProjectProgress);
+router.patch("/final-project/me", authenticate, requireRoles("student"), updateFinalProjectProgress);
+router.post("/final-project/submissions", authenticate, requireRoles("student"), submitFinalProject);
 
 /**
  * @swagger

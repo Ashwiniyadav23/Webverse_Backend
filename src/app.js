@@ -12,12 +12,21 @@ const authMiddleware = require("./middleware/authMiddleware");
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+  "http://localhost:3000",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
         return callback(null, true);
       }
 
@@ -33,7 +42,7 @@ app.use(
 );
 
 // Parse JSON request bodies
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 // Swagger documentation
 app.use(
@@ -84,7 +93,18 @@ app.use("/api", (req, res) => {
 app.use((err, req, res, next) => {
   console.error("Backend error:", err.message);
 
-  if (err.message.startsWith("CORS blocked this origin:")) {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({
+      success: false,
+      message: "Malformed JSON payload in request body",
+    });
+  }
+
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ success: false, message: "Request is too large. Keep project uploads under 5.5 MB total." });
+  }
+
+  if (err.message && err.message.startsWith("CORS blocked this origin:")) {
     return res.status(403).json({
       success: false,
       message: err.message,

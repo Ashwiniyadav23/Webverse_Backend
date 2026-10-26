@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 
@@ -10,156 +9,40 @@ const {
 const {
   createCourse,
   updateCourse,
+  toggleCoursePublish,
   deleteCourse,
   getAllCoursesForAdmin,
+  getAdminCourseById,
+  getCourseStudents,
+  enrollStudentInCourse,
+  removeStudentFromCourse,
 } = require("../controllers/courseController");
 
-router.use(authenticate);
-router.get("/", requireRoles("super_admin", "school_admin"), getAllCoursesForAdmin);
+const {
+  getAdminLessonsByCourse,
+  createLesson,
+  reorderLessons,
+} = require("../controllers/lessonController");
 
-/**
- * @swagger
- * tags:
- *   name: Admin Courses
- *   description: Admin-only course management
- */
+// Require authentication and admin privileges for all admin course routes
+router.use(authenticate, requireRoles("super_admin", "school_admin"));
 
-/**
- * @swagger
- * /api/admin/courses:
- *   get:
- *     summary: List all courses, including unpublished courses
- *     tags: [Admin Courses]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Courses retrieved successfully
- */
+// Courses
+router.get("/", getAllCoursesForAdmin);
+router.post("/", createCourse);
+router.get("/:id", getAdminCourseById);
+router.patch("/:id", updateCourse);
+router.patch("/:id/publish", toggleCoursePublish);
+router.delete("/:id", deleteCourse);
 
+// Lessons for a course
+router.get("/:courseId/lessons", getAdminLessonsByCourse);
+router.post("/:courseId/lessons", createLesson);
+router.put("/:courseId/lessons/reorder", reorderLessons);
 
-/**
- * @swagger
- * /api/admin/courses:
- *   post:
- *     summary: Create a course
- *     tags: [Admin Courses]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *               - description
- *               - classLevel
- *               - subject
- *             properties:
- *               title:
- *                 type: string
- *                 example: Introduction to JavaScript
- *               description:
- *                 type: string
- *                 example: Learn JavaScript fundamentals
- *               classLevel:
- *                 type: integer
- *                 minimum: 6
- *                 maximum: 12
- *                 example: 8
- *               subject:
- *                 type: string
- *                 example: Computer Science
- *               thumbnail:
- *                 type: string
- *                 example: https://example.com/course.jpg
- *               published:
- *                 type: boolean
- *                 example: false
- *     responses:
- *       201:
- *         description: Course created successfully
- *       400:
- *         description: Invalid course data
- *       401:
- *         description: Authentication required
- *       403:
- *         description: Admin role required
- */
-router.post("/", requireRoles("super_admin", "school_admin"), createCourse);
-
-/**
- * @swagger
- * /api/admin/courses/{id}:
- *   patch:
- *     summary: Update a course
- *     tags: [Admin Courses]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: MongoDB course ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               classLevel:
- *                 type: integer
- *                 minimum: 6
- *                 maximum: 12
- *               subject:
- *                 type: string
- *               thumbnail:
- *                 type: string
- *               published:
- *                 type: boolean
- *     responses:
- *       200:
- *         description: Course updated successfully
- *       400:
- *         description: Invalid course ID or data
- *       404:
- *         description: Course not found
- */
-router.patch("/:id", requireRoles("super_admin", "school_admin"), updateCourse);
-
-/**
- * @swagger
- * /api/admin/courses/{id}:
- *   delete:
- *     summary: Delete a course
- *     tags: [Admin Courses]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Course deleted successfully
- *       401:
- *         description: Authentication required
- *       403:
- *         description: Admin role required
- *       404:
- *         description: Course not found
- */
-router.delete("/:id", requireRoles("super_admin", "school_admin"), deleteCourse);
+// Student access for a course
+router.get("/:courseId/students", getCourseStudents);
+router.post("/:courseId/students", enrollStudentInCourse);
+router.delete("/:courseId/students/:studentId", removeStudentFromCourse);
 
 module.exports = router;

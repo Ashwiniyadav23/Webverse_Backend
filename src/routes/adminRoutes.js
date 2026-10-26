@@ -6,6 +6,10 @@ const {
   authenticate,
   requireRoles,
 } = require("../middleware/authMiddleware");
+const {
+  getDashboardStats,
+  getStudents,
+} = require("../controllers/adminController");
 
 /**
  * @swagger
@@ -19,7 +23,7 @@ const {
  * /api/admin/dashboard:
  *   get:
  *     summary: Get admin dashboard
- *     description: Returns the admin dashboard welcome message and authenticated user.
+ *     description: Returns the admin dashboard welcome message, stats, and authenticated user.
  *     tags: [Admin]
  *     security:
  *       - BearerAuth: []
@@ -35,13 +39,30 @@ router.get(
   "/dashboard",
   authenticate,
   requireRoles("super_admin", "school_admin"),
-  (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Welcome to the WebVerse admin dashboard",
-    user: req.user,
-  });
-  }
+  getDashboardStats
+);
+
+/**
+ * @swagger
+ * /api/admin/students:
+ *   get:
+ *     summary: Get list of registered students
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Students list retrieved successfully
+ *       401:
+ *         description: Authentication token missing or invalid
+ *       403:
+ *         description: Access denied; admin role required
+ */
+router.get(
+  "/students",
+  authenticate,
+  requireRoles("super_admin", "school_admin"),
+  getStudents
 );
 
 module.exports = router;
