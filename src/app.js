@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
+const connectDB = require("./config/db");
 
 const app = express();
 
@@ -18,7 +19,14 @@ const allowedOrigins = [
   "http://localhost:4173",
   "http://127.0.0.1:4173",
   "http://localhost:3000",
+  ...(process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 ];
+
+const isAllowedVercelPreview = (origin) =>
+  /^https:\/\/webverse-git-[a-z0-9-]+-ashwinis-projects-6bc9cd01\.vercel\.app$/i.test(origin);
 
 app.use(
   cors({
@@ -26,6 +34,7 @@ app.use(
       if (
         !origin ||
         allowedOrigins.includes(origin) ||
+        isAllowedVercelPreview(origin) ||
         /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
       ) {
         return callback(null, true);
@@ -53,11 +62,28 @@ app.use(
 );
 
 // Health check
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "WebVerse backend is running successfully",
-  });
+app.get("/api/health", async (req, res) => {
+  try {
+    await connectDB();
+    res.status(200).json({
+      success: true,
+      database: "connected",
+      message: "WebVerse backend is running successfully",
+    });
+  } catch (error) {
+    console.error("Health check database connection failed:", error.message);
+    res.status(503).json({
+      success: false,
+      database: "unavailable",
+      message: "Backend is running but cannot connect to the database",
+    });
+  }
+});
+
+// Vercel invokes this exported Express app without running server.js. Connect
+// lazily on the first database-backed request and reuse the connection per instance.
+app.use("/api", (req, res, next) => {
+  connectDB().then(() => next()).catch(next);
 });
 
 // Authentication APIs
