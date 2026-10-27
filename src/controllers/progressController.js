@@ -280,6 +280,34 @@ function validateHtmlCode(code, validation = {}) {
   return { score, passed: score >= 70 && !forbidden.test(code), feedback };
 }
 
+function validateCssCode(code, validation = {}) {
+  const feedback = [];
+  if (/<\/?[a-z][^>]*>/i.test(code)) feedback.push("Write CSS rules only here. The page HTML is already provided in the preview.");
+  if (/<\s*script\b|javascript\s*:|expression\s*\(/i.test(code)) feedback.push("Remove JavaScript. This editor is for CSS styling only.");
+  const opens = (code.match(/{/g) || []).length;
+  const closes = (code.match(/}/g) || []).length;
+  if (opens !== closes) feedback.push("Check your braces: every { needs a matching }.");
+  if (!feedback.some(item => item.startsWith("Write CSS"))) {
+    const stripped = code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media\s*[^{}]+\{/g, "");
+    const declarations = stripped.match(/\{([^{}]*)\}/g) || [];
+    if (declarations.some(rule => rule.slice(1, -1).split(";").some(part => part.trim() && !part.includes(":")))) {
+      feedback.push("A CSS declaration needs a colon between its property and value, such as color: navy;");
+    }
+  }
+  const missing = (validation.requiredText || []).filter(value => !code.toLowerCase().includes(String(value).toLowerCase()));
+  feedback.push(...missing.map(value => `Hint: add or check “${value}” in your stylesheet.`));
+  const total = (validation.requiredText || []).length;
+  const present = total - missing.length;
+  const score = feedback.some(item => item.startsWith("Write CSS") || item.startsWith("Remove JavaScript") || item.startsWith("Check your braces") || item.startsWith("A CSS declaration"))
+    ? 0 : total ? Math.round(present / total * 100) : 100;
+  if (!feedback.length) feedback.push("CSS checks passed. Inspect the preview at desktop, tablet, and mobile widths and compare it with the task brief.");
+  return { score, passed: score >= 70, feedback };
+}
+
+function validateLessonCode(code, curriculum, validation) {
+  return curriculum?.language === "css" ? validateCssCode(code, validation) : validateHtmlCode(code, validation);
+}
+
 const submitSectionAssessment = async (req, res) => {
   try {
     const { lessonId } = req.params;
@@ -294,7 +322,7 @@ const submitSectionAssessment = async (req, res) => {
     if ((priorProgress?.completedTopics || []).length < lesson.curriculum.topics.length || (priorProgress?.completedTasks || []).length < lesson.curriculum.tasks.length || !lastQuiz || lastQuiz.score < 67) {
       return res.status(409).json({ success: false, message: "Complete every learning topic and editor task, then pass the section quiz before the assessment" });
     }
-    const result = validateHtmlCode(code, lesson.curriculum.assessment.validation);
+    const result = validateLessonCode(code, lesson.curriculum, lesson.curriculum.assessment.validation);
     const attempt = { score: result.score, submittedAt: new Date() };
     const progress = await Progress.findOneAndUpdate(
       { student: req.user._id, lesson: lessonId },
@@ -322,7 +350,7 @@ const submitLessonTask = async (req, res) => {
     if ((prior?.curriculumProgress?.completedTopics || []).length < (lesson.curriculum.topics || []).length) {
       return res.status(409).json({ success: false, message: "Complete the lesson topics before submitting a practice task" });
     }
-    const result = validateHtmlCode(code, task.validation);
+    const result = validateLessonCode(code, lesson.curriculum, task.validation);
     const progress = prior || new Progress({ student: req.user._id, lesson: lessonId });
     const completed = new Set(progress.curriculumProgress?.completedTasks || []);
     if (result.passed) completed.add(`task-${taskIndex}`); else completed.delete(`task-${taskIndex}`);

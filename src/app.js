@@ -106,6 +106,7 @@ app.use("/api/admin/courses", require("./routes/adminCourseRoutes"));
 app.use("/api/admin/lessons", require("./routes/lessonRoutes"));
 app.use("/api/lessons", require("./routes/lessonRoutes"));
 app.use("/api/progress", require("./routes/progressRoutes"));
+app.use("/api/combined-assessment", require("./routes/combinedAssessmentRoutes"));
 app.use("/api/enrollments", require("./routes/enrollmentRoutes"));
 
 // Handle unknown API routes

@@ -1,6 +1,68 @@
 const Course = require("../models/Course");
 const Lesson = require("../models/Lesson");
 const phaseOneCurriculum = require("./htmlPhaseOneCurriculum");
+const cssPhaseTwoCurriculum = require("./cssPhaseTwoCurriculum");
+
+async function seedCssPhaseTwo() {
+  const title = "Phase 2: Dressing Up Your Websites with CSS";
+  let course = await Course.findOne({ title });
+  if (!course) {
+    course = await Course.create({
+      title,
+      description: "Style the six-page Student Profile & Course Portal with CSS, then make every page work across desktop, tablet, and mobile screens.",
+      classLevel: 8,
+      subject: "Computer Science",
+      category: "Web Development",
+      thumbnail: "",
+      published: true,
+    });
+  }
+
+  const sectionTitles = ["CSS Fundamentals & Global Styling", "Typography, Colors & Navigation", "Profile Page & Box Model", "Courses Page — Flexbox", "Courses Page — CSS Grid", "Feedback Form Styling", "Grades Table Styling", "Contact Page Styling", "Responsive Web Design"];
+  for (let index = 0; index < sectionTitles.length; index++) {
+    const module = `Section ${index + 1}: ${sectionTitles[index]}`;
+    const existing = await Lesson.findOne({ course: course._id, module });
+    if (existing) continue;
+    const curriculum = cssPhaseTwoCurriculum[index];
+    const titles = curriculum.topics.map(item => item.tag);
+    await Lesson.create({
+      course: course._id,
+      title: sectionTitles[index],
+      module,
+      description: `Learn ${titles.join(", ")}, practice in the CSS editor, complete the section quiz, and pass an independent styling assessment.`,
+      content: `${module}\n\nLearn each concept in simple English, see a small example and its result, then try the editor tasks. Use the preview to inspect your CSS. Complete the quiz and the separate practical assessment to unlock the next section.\n\nCSS only: the HTML project is supplied as the page structure.`,
+      curriculum,
+      documentUrl: "https://developer.mozilla.org/en-US/docs/Learn/CSS",
+      resources: [],
+      order: index + 1,
+      duration: "Learn, practice, and self-check",
+      published: true,
+    });
+  }
+
+  const finalModule = "Final Challenge: Responsive Six-Page Website";
+  if (!await Lesson.findOne({ course: course._id, module: finalModule })) {
+    await Lesson.create({
+      course: course._id,
+      title: "Final Challenge: Responsive Six-Page Website",
+      module: finalModule,
+      description: "Apply CSS independently to style the complete Home, Profile, Courses, Feedback, Grades, and Contact website responsively.",
+      content: "Use the existing six-page HTML project as your structure. Create and share one external style.css across all pages. Style each page, then check desktop, tablet (768px), and mobile (480px) widths. Submit the final stylesheet after completing the nine sections.",
+      curriculum: {
+        language: "css",
+        topics: [{ tag: "Six-page responsive challenge", what: "Bring the six existing HTML pages together with one reusable stylesheet.", why: "A shared stylesheet creates a consistent website and lets the layout adapt to all screens.", how: "Style home, profile, courses, feedback, grades, and contact pages; use the 768px and 480px breakpoints.", example: "/* Create shared colors, type, layout, and responsive rules */", output: "Six pages share a visual system and remain usable at desktop, tablet, and mobile widths.", mistakes: ["Check each page for missing styles.", "Test navigation and horizontal overflow at narrow widths."] }],
+        tasks: [{ title: "Final website stylesheet", instructions: "Write an external stylesheet for the full six-page Student Profile & Course Portal. Style shared navigation and page regions, profile image and content, Flexbox or Grid course cards, feedback form, grades table, and contact details. At 768px stack navigation and adapt cards; at 480px tune font and spacing and keep the table horizontally scrollable. Use only CSS; the HTML pages are already provided.", starterCode: "/* Shared styles for Home, Profile, Courses, Feedback, Grades, and Contact */\n", validation: { requiredText: ["body", "nav", "@media", "768px", "480px", "grid", "flex", "table", "input"] } }],
+        quiz: [{ type: "mcq", prompt: "Which file should the six HTML pages share?", options: ["style.css", "styles.js", "course.html", "layout.png"], answerIndex: 0, explanation: "A shared external style.css file can be linked from each HTML page." }, { type: "output", prompt: "What happens to this rule below 480px?", options: ["Main padding becomes 1rem", "Navigation disappears", "Table rows are removed", "Nothing can change"], answerIndex: 0, explanation: "The media query applies when viewport width is at most 480px.", snippet: "@media (max-width: 480px) { main { padding: 1rem; } }" }, { type: "error", prompt: "A page is wider than the phone screen because of a grades table. What is a useful fix?", options: ["Wrap it in an overflow-x:auto container", "Hide all columns", "Set every cell to 1px", "Remove the headings"], answerIndex: 0, explanation: "A wrapper can allow horizontal scrolling while preserving table information." }],
+        assessment: { title: "Final six-page assessment", prompt: "Create a responsive shared stylesheet for the full six-page student website. Include the common site layout, page-specific profile, courses, feedback, grades, and contact styles, and responsive adjustments for 768px and 480px.", starterCode: "/* Write your final shared stylesheet */\n", validation: { requiredText: ["body", "header", "nav", "main", "footer", "profile", "course", "form", "table", "contact", "@media", "768px", "480px", "overflow-x"] }, testCases: ["The stylesheet covers all six page types.", "Navigation and cards adapt at 768px.", "Typography and spacing adapt at 480px.", "The grades table can scroll on a narrow screen."], criteria: ["A consistent shared visual system", "Styles for all six page structures", "Flexbox or Grid course layout", "Clear form, table, profile, and contact styling", "Responsive behavior at both required breakpoints"] },
+      },
+      documentUrl: "",
+      resources: [],
+      order: 10,
+      duration: "Final project",
+      published: true,
+    });
+  }
+}
 
 async function seedHtmlFundamentals() {
   const title = "Phase 1 — Student Profile & Course Portal (HTML Only)";
@@ -123,6 +185,7 @@ async function seedHtmlFundamentals() {
 
 async function seedInitialCourses() {
   await seedHtmlFundamentals();
+  await seedCssPhaseTwo();
   const count = await Course.countDocuments();
   if (count > 0) return;
 
