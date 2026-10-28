@@ -75,7 +75,7 @@ const getLessonById = async (req, res) => {
       path: "course",
       match: { published: true },
       select: "title classLevel subject category",
-    });
+    }).lean();
 
     if (!lesson || !lesson.course) {
       return res.status(404).json({
